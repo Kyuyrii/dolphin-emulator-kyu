@@ -1,0 +1,63 @@
+name: dolphin-emulator-kyu
+base: core24
+version: '2506a'
+platforms:
+  amd64:
+    build-on: [amd64]
+    build-for: [amd64]
+summary: GameCube / Wii / Triforce Emulator
+description: |
+  Dolphin is an emulator for two recent Nintendo video game consoles: the GameCube and the Wii. It allows PC gamers to enjoy games for these two consoles in full HD (1080p) with several enhancements: compatibility with all PC controllers, turbo speed, networked multiplayer, and even more!
+grade: stable
+confinement: strict
+
+apps:
+  dolphin-emulator-kyu:
+    command: opt/dolphin-emu/squashfs-root/bin/dolphin-emu
+    desktop: usr/share/applications/dolphin-emu.desktop
+    extensions:
+      - gnome
+    plugs:
+      - home
+      - removable-media
+      - gtk-3-themes
+      - icon-themes
+      - desktop
+      - desktop-legacy
+      - x11
+      - opengl
+      - wayland
+      - audio-playback
+      - joystick
+      - screen-inhibit-control
+      - network
+
+plugs:
+  shared-memory:
+    private: true
+
+parts:
+  dolphin-emulator-kyu:
+    plugin: dump
+    source: .
+    build-packages:
+      - wget
+    override-build: |
+      craftctl default
+      pwd
+      ls -l
+      wget https://github.com/pkgforge-dev/Dolphin-emu-AppImage/releases/download/2506a%402025-07-29_1753812199/Dolphin_Emulator-2506a-anylinux.squashfs-x86_64.AppImage
+      chmod +x Dolphin_Emulator-2506a-anylinux.squashfs-x86_64.AppImage
+      ./Dolphin_Emulator-2506a-anylinux.squashfs-x86_64.AppImage --appimage-extract
+      mkdir -p $CRAFT_PART_INSTALL/opt/dolphin-emu
+      mkdir -p $CRAFT_PART_INSTALL/usr/share/applications
+      mkdir -p $CRAFT_PART_INSTALL/usr/share/icons/hicolor/scalable/apps
+      sed -i 's|Icon=dolphin-emu|Icon=${SNAP}/usr/share/icons/hicolor/scalable/apps/dolphin-emu.png|' squashfs-root/dolphin-emu.desktop
+      sed -i 's|Exec=dolphin-emu|Exec=${SNAP}/opt/dolphin-emu/squashfs-root/bin/dolphin-emu|' squashfs-root/dolphin-emu.desktop
+      mv -f squashfs-root/dolphin-emu.desktop $CRAFT_PART_INSTALL/usr/share/applications/
+      mv -f squashfs-root/dolphin-emu.png $CRAFT_PART_INSTALL/usr/share/icons/hicolor/scalable/apps
+      mv -f squashfs-root/ $CRAFT_PART_INSTALL/opt/dolphin-emu
+    prime:
+      - usr/share/applications/
+      - usr/share/icons/hicolor/scalable/apps
+      - opt/dolphin-emu
