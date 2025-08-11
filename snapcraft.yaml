@@ -1,0 +1,150 @@
+name: dolphin-emulator-kyu
+base: core24
+version: '2506a'
+platforms:
+  amd64:
+    build-on: [amd64]
+    build-for: [amd64]
+summary: GameCube / Wii / Triforce Emulator
+description: |
+  Dolphin is an emulator for two recent Nintendo video game consoles: the GameCube and the Wii. It allows PC gamers to enjoy games for these two consoles in full HD (1080p) with several enhancements: compatibility with all PC controllers, turbo speed, networked multiplayer, and even more!
+grade: stable
+confinement: strict
+compression: lzo
+
+apps:
+  dolphin-emulator-kyu:
+    command-chain:
+      - snap/command-chain/gpu-2404-wrapper
+      - snap/command-chain/desktop-launch6
+    command: usr/games/dolphin-emu
+    desktop: usr/local/share/applications/dolphin-emu.desktop
+    common-id: org.DolphinEmu.dolphin-emu
+    environment:
+      SNAP_DESKTOP_RUNTIME: $SNAP/kf6
+      QT_QPA_PLATFORM: xcb
+      GTK_USE_PORTAL: "1"
+      QT_VERSION: "6"
+    plugs:
+      - desktop
+      - desktop-legacy
+      - unity7
+      - opengl
+      - wayland
+      - x11
+      - screen-inhibit-control
+      - audio-playback
+      - network
+      - network-bind
+      - home
+      - removable-media
+      - mount-observe
+      - joystick
+      - bluez
+      - udisks2
+      - hardware-observe
+      - optical-drive
+      - raw-usb
+      - hidraw
+
+hooks:
+  configure:
+    command-chain:
+      - snap/command-chain/hooks-configure-desktop
+
+plugs:
+  desktop:
+    mount-host-font-cache: false
+  gtk-2-themes:
+    interface: content
+    target: $SNAP/data-dir/themes
+    default-provider: gtk-common-themes
+  gtk-3-themes:
+    interface: content
+    target: $SNAP/data-dir/themes
+    default-provider: gtk-common-themes
+  icon-themes:
+    interface: content
+    target: $SNAP/data-dir/icons
+    default-provider: gtk-common-themes
+  sound-themes:
+    interface: content
+    target: $SNAP/data-dir/sounds
+    default-provider: gtk-common-themes
+  kf6-core24:
+    content: kf6-core24-all
+    interface: content
+    target: $SNAP/kf6
+    default-provider: kf6-core24
+  gpu-2404:
+    interface: content
+    target: $SNAP/gpu-2404
+    default-provider: mesa-2404
+  shared-memory:
+    private: true
+
+parts:
+  dolphin-emu:
+    plugin: cmake
+    source: https://github.com/dolphin-emu/dolphin.git
+    source-tag: 2506a
+    build-snaps:
+      - kde-qt6-core24-sdk
+    build-packages:
+      - libbluetooth-dev
+      - libasound2-dev
+      - libgl1-mesa-dev
+      - libcurl4-openssl-dev
+      - libsdl2-dev
+    build-environment:
+      - PATH: /snap/kde-qt6-core24-sdk/current/usr/bin:/snap/kf6-core24-sdk/current/usr/bin${PATH:+:$PATH}
+      - XDG_DATA_DIRS: $CRAFT_STAGE/usr/share:/snap/kde-qt6-core24-sdk/current/usr/share:/snap/kf6-core24-sdk/current/usr/share:/usr/share${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}
+      - XDG_CONFIG_HOME: $CRAFT_STAGE/etc/xdg:/snap/kde-qt6-core24-sdk/current/etc/xdg:/snap/kf6-core24-sdk/current/etc/xdg:/etc/xdg${XDG_CONFIG_HOME:+:$XDG_CONFIG_HOME}
+      - LD_LIBRARY_PATH: /snap/kde-qt6-core24-sdk/current/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}:/snap/kde-qt6-core24-sdk/current/usr/lib:/snap/kf6-core24-sdk/current/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}:/snap/kf6-core24-sdk/current/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/blas:/snap/kf6-core24-sdk/current/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/lapack:/snap/kf6-core24-sdk/current/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}/libproxy:/snap/kf6-core24-sdk/current/usr/lib:$CRAFT_STAGE/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR}:$CRAFT_STAGE/usr/lib:$CRAFT_STAGE/lib/${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}
+      - CMAKE_PREFIX_PATH: $CRAFT_STAGE;/snap/kde-qt6-core24-sdk/current;/snap/kf6-core24-sdk/current;/usr${CMAKE_PREFIX_PATH:+;$CMAKE_PREFIX_PATH}
+      - CMAKE_FIND_ROOT_PATH: $CRAFT_STAGE;/snap/kde-qt6-core24-sdk/current;/snap/kf6-core24-sdk/current;/usr${CMAKE_FIND_ROOT_PATH:+;$CMAKE_FIND_ROOT_PATH}
+    cmake-parameters:
+      - -DCMAKE_BUILD_TYPE=Release
+      - -DENABLE_ALSA=OFF
+      - -DENABLE_SDL=ON
+      - -DENABLE_EVDEV=ON
+      - -DDISTRIBUTOR=Kyuyrii
+      - -DCMAKE_INSTALL_BINDIR=/usr/games
+      - -DCMAKE_INSTALL_DATADIR=/usr/share/games
+    override-build: |
+      craftctl default
+      sed -e 's|Exec=dolphin-emu|Exec=${SNAP}/usr/games/dolphin-emu|' -i  $CRAFT_PART_INSTALL/usr/local/share/applications/dolphin-emu.desktop
+      sed -e 's|Icon=dolphin-emu|Icon=${SNAP}/usr/local/share/icons/hicolor/scalable/apps/dolphin-emu.svg|' -i  $CRAFT_PART_INSTALL/usr/local/share/applications/dolphin-emu.desktop
+
+  command-chain:
+    plugin: nil
+    source: ./launcher
+    override-build: |
+      mkdir -p $CRAFT_PART_INSTALL/snap
+      cp -r command-chain $CRAFT_PART_INSTALL/snap/
+      chmod 777 $CRAFT_PART_INSTALL/snap/command-chain/*
+
+  dependencies:
+    after: [dolphin-emu]
+    plugin: nil
+    stage-packages:
+      - libbluetooth3
+    prime:
+      - usr/lib/x86_64-linux-gnu
+
+
+layout:
+  /usr/share/X11:
+    symlink: $SNAP/kf6/usr/share/X11
+  /usr/share/qt6:
+    symlink: $SNAP/kf6/usr/share/qt6
+  /usr/share/libdrm:
+    bind: $SNAP/gpu-2404/libdrm
+  /usr/share/drirc.d:
+    symlink: $SNAP/gpu-2404/drirc.d
+  /usr/share/games/dolphin-emu/sys:
+    symlink: $SNAP/usr/share/games/dolphin-emu/sys
+  /usr/share/games/locale:
+    bind: $SNAP/usr/local/share/locale
+  /etc/fonts:
+    bind: $SNAP/etc/fonts
