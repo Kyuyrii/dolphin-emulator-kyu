@@ -83,6 +83,14 @@ plugs:
   shared-memory:
     private: true
 
+package-repositories:
+  - type: apt
+    url: http://origin.archive.neon.kde.org/user
+    suites: [noble]
+    components: [main]
+    architectures: [amd64]
+    key-id: 444DABCF3667D0283F894EDDE6D4736255751E5D
+
 parts:
   dolphin-emu:
     plugin: cmake
@@ -90,12 +98,15 @@ parts:
     source-tag: 2506a
     build-snaps:
       - kde-qt6-core24-sdk
+      - kf6-core24-sdk
     build-packages:
       - libbluetooth-dev
       - libasound2-dev
       - libgl1-mesa-dev
       - libcurl4-openssl-dev
       - libsdl2-dev
+      - libevdev-dev
+      - libfreetype-dev
     build-environment:
       - PATH: /snap/kde-qt6-core24-sdk/current/usr/bin:/snap/kf6-core24-sdk/current/usr/bin${PATH:+:$PATH}
       - XDG_DATA_DIRS: $CRAFT_STAGE/usr/share:/snap/kde-qt6-core24-sdk/current/usr/share:/snap/kf6-core24-sdk/current/usr/share:/usr/share${XDG_DATA_DIRS:+:$XDG_DATA_DIRS}
@@ -115,8 +126,10 @@ parts:
       craftctl default
       sed -e 's|Exec=dolphin-emu|Exec=${SNAP}/usr/games/dolphin-emu|' -i  $CRAFT_PART_INSTALL/usr/local/share/applications/dolphin-emu.desktop
       sed -e 's|Icon=dolphin-emu|Icon=${SNAP}/usr/local/share/icons/hicolor/scalable/apps/dolphin-emu.svg|' -i  $CRAFT_PART_INSTALL/usr/local/share/applications/dolphin-emu.desktop
+      sed -e 's|Name=Dolphin Emulator|Name=Dolphin Emu [NyKyu]|' -i  $CRAFT_PART_INSTALL/usr/local/share/applications/dolphin-emu.desktop
 
   command-chain:
+    after: [dolphin-emu]
     plugin: nil
     source: ./launcher
     override-build: |
@@ -125,13 +138,12 @@ parts:
       chmod 777 $CRAFT_PART_INSTALL/snap/command-chain/*
 
   dependencies:
-    after: [dolphin-emu]
+    after: [command-chain]
     plugin: nil
     stage-packages:
       - libbluetooth3
     prime:
-      - usr/lib/x86_64-linux-gnu
-
+      - usr/lib/x86_64-linux-gnu/libbluetooth.so*
 
 layout:
   /usr/share/X11:
